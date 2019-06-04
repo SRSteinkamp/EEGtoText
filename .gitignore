@@ -2,3 +2,5 @@
 /Stimuli
 /.vscode
 *.pyc
+/.ipynb_checkpoints
+/__pycache__
