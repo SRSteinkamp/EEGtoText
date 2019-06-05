@@ -3,7 +3,8 @@ import pandas as pd
 from scipy.io import loadmat
 from sklearn.linear_model import LinearRegression
 from scipy.signal import butter, sosfiltfilt
-
+from sklearn.metrics import confusion_matrix
+from seaborn import heatmap
 
 def load_text(PATH=''):
     words = []
@@ -111,3 +112,116 @@ def simple_EEG_preprocessing(data, lowcut, highcut, fs):
     eeg_preproc = butter_bandpass_filter(eeg_preproc.T, lowcut, highcut, fs).T
 
     return eeg_preproc
+
+
+def lag_builder(time_min, time_max):
+    """
+    Copied from unpublished pymtrf toolbox. Release (hopefully soon)
+    Build the lags for the lag_generator function. Basically the indices of
+    the time lags (including the starting and stopping points) of the data
+    matrix.
+
+    Parameters
+    ----------
+    time_min : np.int
+        The starting index of the matrix as integer.
+    time_max : np.int
+        The stopping index of the matrix as integer.
+
+    Returns
+    -------
+    lag_vector : numpy.ndarray, shape (np.abs(time_max) + np.abs(time_min) + 1,)
+        A numpy array including all the lags.
+    """
+
+    if time_min > time_max:
+        lag_vector = np.arange(time_max, time_min + 1)[::-1]
+    else:
+        lag_vector = np.arange(time_min, time_max + 1)
+
+    return lag_vector
+
+
+def lag_gen(data, time_lags):
+    '''
+    Not yet published pymtrf toolbox
+    lag_gen returns the matrix containing the lagged time series of data for
+    a range of time lags given by the list or numpy array lags. If the data is
+    multivariate, lag_gen concatenates the features for each lag along the
+    columns of the output array.
+
+    Parameters
+    ----------
+    data : {float, array_like}, shape = [n_samples, n_features]
+        The training data, i.e. the data that is shifted in time.
+    time_lags : {int, array_like}, shape = [n_lags]
+        Indices for lags that will be applied to the data.
+
+    Returns
+    -------
+    lagged_data : {float, array_like}, shape = [n_samples, n_features * n_lag}
+        The data shifted in time, as described above.
+
+    See also
+    --------
+    mtrf_train : calculate forward or backward models.
+    mtrf_predict : predict stimulus or response based on models.
+    mtrf_crossval : calculate reconstruction accuracies for a dataset.
+
+    Translation to Python: Simon Richard Steinkamp
+    Github:
+    October 2018; Last revision: 18.January 2019
+    Original MATLAB toolbox, mTRF v. 1.5
+    Author: Michael Crosse
+    Lalor Lab, Trinity College Dublin, IRELAND
+    Email: edmundlalor@gmail.com
+    Website: http://lalorlab.net/
+    April 2014; Last revision: 18 August 2015
+    '''
+    lagged_data = np.zeros((data.shape[0], data.shape[1] * time_lags.shape[0]))
+
+    chan = 0
+    for lags in time_lags:
+
+        if lags < 0:
+            lagged_data[:lags, chan:chan + data.shape[1]] = data[-lags:, :]
+        elif lags > 0:
+            lagged_data[lags:, chan:chan + data.shape[1]] = data[:-lags, :]
+        else:
+            lagged_data[:, chan:chan + data.shape[1]] = data
+
+        chan = chan + data.shape[1]
+
+    return lagged_data
+
+
+def get_data_for_word(data, word_sample, idx, time_win=86):
+    '''
+    uses the the word sample dictionary to extract labels and samples.
+    data: eeg in form n_timepoints x  n_channels, for one run
+    Word sample:  contains for each data set the labels and the onsets.
+    idx: the run which is represented by a run.
+    time_win: how many timepoints after each onset are included
+
+    '''
+    data_sample = []
+    labels = []
+    for word in word_sample.keys():
+        for on in word_sample[word][idx]:
+            data_sample.append(data[on : on + time_win, :])
+            labels.append(word)
+
+    return data_sample, labels
+
+
+def plot_confusion_matrix(y, y_pred, labels, normalize=True, cmap='coolwarm'):
+    '''
+    Plots a confusion matrix. Normalized or raw values.
+    '''
+    cm = confusion_matrix(y, y_pred)
+
+    if normalize:
+        cm = cm / np.sum(cm, 1, keepdims=True)
+
+    heatmap(cm, annot=True, xticklabels= np.unique(labels),
+            yticklabels=np.unique(labels), cmap='coolwarm')
