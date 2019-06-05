@@ -237,7 +237,8 @@ def get_data_for_word(data, word_sample, idx, time_win=86):
     return data_sample, labels
 
 
-def plot_confusion_matrix(y, y_pred, labels, normalize=True, cmap='coolwarm'):
+def plot_confusion_matrix(y, y_pred, labels, ax,
+                          normalize=True, cmap='Blues'):
     '''
     Plots a confusion matrix. Normalized or raw values.
     '''
@@ -246,8 +247,10 @@ def plot_confusion_matrix(y, y_pred, labels, normalize=True, cmap='coolwarm'):
     if normalize:
         cm = cm / np.sum(cm, 1, keepdims=True)
 
+    cm = np.round(cm, 2)
+
     heatmap(cm, annot=True, xticklabels= np.unique(labels),
-            yticklabels=np.unique(labels), cmap='coolwarm')
+            yticklabels=np.unique(labels), square=True, cmap=cmap, ax=ax)
 
     return None
 
