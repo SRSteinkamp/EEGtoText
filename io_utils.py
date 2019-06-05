@@ -69,6 +69,29 @@ def word_histogram(words):
     return word_keys, word_counts
 
 
+def word_dict_summary(word_samples_ons, word_samples_ofs, summary_func):
+    '''
+    word_samples_ons output of words_to_onset (with onsets)
+    word_samples_ofs output of words_to_onset (with ofset)
+    summary_func: a function to calculate summaries (i.e. np.max)
+    return the summary across all words
+    '''
+    descript = []
+    for word in word_samples_ons.keys():
+        w_descript = []
+        tmp_on = word_samples_ons[word]
+        tmp_of = word_samples_ofs[word]
+        for (tn, tf) in zip(tmp_on, tmp_of):
+            if len(tn) != 0:
+                w_descript.append(summary_func(tf - tn))
+            else:
+                w_descript.append(0)
+
+        descript.append(summary_func(w_descript))
+
+    return descript
+
+
 def butter_bandpass(lowcut, highcut, fs, order=5):
     '''
     lowcut for bandpass
@@ -248,3 +271,5 @@ def wrap_cross_val_predict(clf, X, y, cv):
         trues.append(y[te])
 
     return trues, predictions
+
+
