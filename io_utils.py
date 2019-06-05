@@ -108,6 +108,6 @@ def simple_EEG_preprocessing(data, lowcut, highcut, fs):
                    LR.predict(np.arange(data.shape[0]).reshape(-1,1)))
     # Remove linear trend, for each channel.
     # Bandpass filter
-    eeg_preproc = butter_bandpass_filter(eeg_preproc, lowcut, highcut, fs)
+    eeg_preproc = butter_bandpass_filter(eeg_preproc.T, lowcut, highcut, fs).T
 
     return eeg_preproc
