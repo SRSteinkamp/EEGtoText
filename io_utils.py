@@ -225,3 +225,26 @@ def plot_confusion_matrix(y, y_pred, labels, normalize=True, cmap='coolwarm'):
 
     heatmap(cm, annot=True, xticklabels= np.unique(labels),
             yticklabels=np.unique(labels), cmap='coolwarm')
+
+    return None
+
+
+def wrap_cross_val_predict(clf, X, y, cv):
+    '''
+    clf - An sklearn estimator
+    X - data, n_features x n_samples
+    y - labels for classification
+    cv - a crossvalidation object (i.e. Kfold)
+    Returns:
+    trues - the correct values
+    predictions - predictions
+    '''
+
+    predictions = []
+    trues = []
+    for tr, te in cv.split(X, y):
+        clf.fit(X[tr], y[tr])
+        predictions.append(clf.predict(X[te]))
+        trues.append(y[te])
+
+    return trues, predictions
