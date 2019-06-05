@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from scipy.io import loadmat
+from sklearn.linear_model import LinearRegression
+from scipy.signal import butter, sosfiltfilt
 
 
 def load_text(PATH=''):
@@ -64,3 +66,48 @@ def word_histogram(words):
     word_counts = np.array(word_counts)[sort_idx]
 
     return word_keys, word_counts
+
+
+def butter_bandpass(lowcut, highcut, fs, order=5):
+    '''
+    lowcut for bandpass
+    highcut for bandpass
+    fs frequency of signal
+    order the filter order.
+    Source: https://scipy-cookbook.readthedocs.io/items/ButterworthBandpass.html
+    and changed following:
+    https://stackoverflow.com/questions/12093594/how-to-implement-band-pass-butterworth-filter-with-scipy-signal-butter
+    '''
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    sos = butter(order, [low, high], btype='band',
+                 analog=False, output='sos')
+    return sos
+
+
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+    # https://scipy-cookbook.readthedocs.io/items/ButterworthBandpass.html
+    sos = butter_bandpass(lowcut, highcut, fs, order=order)
+    y = sosfiltfilt(sos, data)
+    return y
+
+
+def simple_EEG_preprocessing(data, lowcut, highcut, fs):
+    '''
+    data = n_timepoints x n_channels
+    lowcut = lower cutoff for bandpass
+    highcut = higher cutoff for bandpass
+    fs = fs of the EEG signal
+    '''
+    LR = LinearRegression() # Using intercept should already remove the
+    # channel mean. Linear regression for linear detrending.
+    eeg_preproc = data - np.mean(data, 1, keepdims=True) # average reference
+    LR.fit(np.arange(data.shape[0]).reshape(-1,1), eeg_preproc) # fit LR
+    eeg_preproc = (eeg_preproc -
+                   LR.predict(np.arange(data.shape[0]).reshape(-1,1)))
+    # Remove linear trend, for each channel.
+    # Bandpass filter
+    eeg_preproc = butter_bandpass_filter(eeg_preproc, lowcut, highcut, fs)
+
+    return eeg_preproc
